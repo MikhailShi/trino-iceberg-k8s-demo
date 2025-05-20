@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hive-metastore
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hive-metastore
+  template:
+    metadata:
+      labels:
+        app: hive-metastore
+    spec:
+      containers:
+      - name: hive-metastore
+        image: hive/metastore_s3_pg:0.0.1
+        imagePullPolicy: Never
+        env:
+        - name: SERVICE_NAME
+          value: metastore
+        - name: DB_DRIVER
+          value: postgres
+        - name: SERVICE_OPTS
+          value: |
+            -Djavax.jdo.option.ConnectionDriverName=org.postgresql.Driver
+            -Djavax.jdo.option.ConnectionURL=jdbc:postgresql://postgres-service.metastore:5432/metastore?allowPublicKeyRetrieval=true&amp;useSSL=false&amp;serverTimezone=UTC
+            -Djavax.jdo.option.ConnectionUserName=metastore
+            -Djavax.jdo.option.ConnectionPassword=password
+        ports:
+          - containerPort: 9083
+        livenessProbe:
+          tcpSocket:
+            port: 9083
+          initialDelaySeconds: 60
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          tcpSocket:
+            port: 9083
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        volumeMounts:
+          - name: hadoop-config
+            mountPath: /opt/hadoop/etc/hadoop/core-site.xml
+            subPath: core-site.xml
+      restartPolicy: Always
+      volumes:
+        - name: hadoop-config
+          configMap:
+            name: hadoop-config

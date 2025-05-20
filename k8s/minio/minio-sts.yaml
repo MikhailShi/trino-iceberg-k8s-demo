@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: minio
+  name: minio
+spec:
+  serviceName: minio
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minio
+  template:
+    metadata:
+      labels:
+        app: minio
+    spec:
+      containers:
+      - name: minio
+        args: [
+            "server",
+            "--address",
+            ":9000",
+            "--console-address",
+            ":9001",
+            "/data",
+        ]
+        image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+        env:
+          - name: MINIO_ROOT_USER
+            value: minio
+          - name: MINIO_ROOT_PASSWORD
+            value: minio123
+        ports:
+          - containerPort: 9000
+          - containerPort: 9001
+      restartPolicy: Always
+  volumeClaimTemplates:
+  - metadata:
+      name: minio-storage
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 2Gi
